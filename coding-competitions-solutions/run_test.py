@@ -3,8 +3,8 @@ import subprocess, os, sys
 sys.dont_write_bytecode = True
 
 class TestData:
-  def __raw_test(in_file, ans_file, out_file):
-    return open(ans_file, 'r').read() == open(out_file, 'r').read()
+  def __raw_test(s_in, s_ans, s_out):
+    return s_ans == s_out
 
   def __init__(self, path):
     SOLUTION_DIR_NAME = 'coding-competitions-solutions'
@@ -13,7 +13,7 @@ class TestData:
       sys.path.append(path)
 
     try:
-      from judge_wrapper import Judge
+      from custom_judge import Judge
       self.judge = Judge(path).test
     except:
       self.judge = TestData.__raw_test
@@ -24,21 +24,19 @@ class TestData:
 
   def test(self, cmd):
     for task in self.tasks:
-      in_file = os.path.join(self.path, task, '1.in')
-      ans_file = os.path.join(self.path, task, '1.ans')
-      out_file = '1.out'
+      s_in = ''
+      for f in sorted(os.listdir(os.path.join(self.path, task))):
+        if f.startswith('1.in'):
+          s_in += open(os.path.join(self.path, task, f)).read()
 
-      with open(in_file, 'r') as f_in:
-        with open(out_file, 'w') as f_out:
-          subprocess.run(cmd, stdin = f_in, stdout = f_out)
+      s_ans = open(os.path.join(self.path, task, '1.ans')).read()
+      s_out = subprocess.check_output(cmd, input = s_in, text = True)
 
-      if self.judge(in_file, ans_file, out_file):
+      if self.judge(s_in, s_ans, s_out):
         print(task + ': test succeed')
       else:
         print(task + ': test failed')
         break
-
-    os.remove(out_file)
 
 if __name__ == '__main__':
   testdata = TestData(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
