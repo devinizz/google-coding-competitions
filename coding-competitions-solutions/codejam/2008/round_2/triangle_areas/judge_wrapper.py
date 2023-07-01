@@ -1,17 +1,18 @@
-import subprocess, os, sys
-if '.' not in sys.path:
-  sys.path.append('.')
-sys.dont_write_bytecode = True
+import os, sys
+from lib2to3 import refactor
+
+def convert_python2_to_python3(code):
+    fixers = refactor.get_fixers_from_package('lib2to3.fixes')
+    refactor_tool = refactor.RefactoringTool(fixers)
+    return str(refactor_tool.refactor_string(code, 'converted.py'))
 
 class Judge:
   def __get_judge(path):
     judge_file = os.path.join(path, 'custom_judge.py')
-    subprocess.run(['python3', '-m', 'lib2to3', '-Wno.', judge_file],
-      stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-    from custom_judge import FindError
-    read = lambda name: open(name, 'r').read()
-    def judge(in_f, ans_f, out_f, debug = False):
-      result = FindError(None, read(in_f), read(ans_f), read(out_f))
+    namespace = dict()
+    exec(convert_python2_to_python3(open(judge_file).read()), namespace)
+    def judge(s_in, s_ans, s_out, debug = False):
+      result = namespace['FindError'](None, s_in, s_ans, s_out)
       if (debug and result):
         print(result)
       return result == None
@@ -24,9 +25,9 @@ class Judge:
     path = os.path.join(path, 'output_validators', 'validator')
     self.test = Judge.__get_judge(path)
 
-  def __del__(self):
-    os.remove('custom_judge.py')
-
 if __name__ == '__main__':
   judge = Judge(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
-  print('succeed' if judge.test(*sys.argv[1:], True) else 'failed')
+  if judge.test(*map(lambda f: open(f).read(), sys.argv[1:]), debug = True):
+    print('succeed')
+  else:
+    print('failed')
