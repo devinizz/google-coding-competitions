@@ -3,20 +3,37 @@ import subprocess, os, sys
 sys.dont_write_bytecode = True
 
 class TestData:
-  def __raw_test(s_in, s_ans, s_out):
-    return s_ans == s_out
+  def __test(self, s_in, s_ans, s_out):
+    if self.tolerance == 0:
+      return s_ans == s_out
+    else:
+      ans = s_ans.split()
+      out = s_out.split()
+      if len(ans) != len(out):
+        return False
+      for a, o in zip(ans, out):
+        if a == o:
+          continue
+        if abs(float(a) - float(o)) / max(1, abs(float(a))) > self.tolerance:
+          return False
+      return True
 
   def __init__(self, path):
     SOLUTION_DIR_NAME = 'coding-competitions-solutions'
     ARCHIVE_DIR_NAME = 'coding-competitions-archive'
-    if path not in sys.path:
-      sys.path.append(path)
 
+    try:
+      self.tolerance = float(open(os.path.join(path, 'float_tolerance')).read())
+    except:
+      self.tolerance = 0
+
+    sys.path.append(path)
     try:
       from custom_judge import Judge
       self.judge = Judge(path).test
     except:
-      self.judge = TestData.__raw_test
+      self.judge = self.__test
+    sys.path.remove(path)
 
     path = path.replace(SOLUTION_DIR_NAME, ARCHIVE_DIR_NAME)
     self.path = os.path.join(path, 'data', 'secret')
@@ -36,7 +53,7 @@ class TestData:
         print(task + ': test succeed')
       else:
         print(task + ': test failed')
-        break
+        exit(1)
 
 if __name__ == '__main__':
   testdata = TestData(os.path.join(os.getcwd(), os.path.dirname(sys.argv[0])))
