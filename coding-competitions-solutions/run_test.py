@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import subprocess, os, sys
-sys.dont_write_bytecode = True
 
 class TestData:
   def __test(self, s_in, s_ans, s_out):
@@ -22,18 +21,15 @@ class TestData:
     SOLUTION_DIR_NAME = 'coding-competitions-solutions'
     ARCHIVE_DIR_NAME = 'coding-competitions-archive'
 
-    try:
+    self.tolerance = 0
+    if os.path.exists(os.path.join(path, 'float_tolerance')):
       self.tolerance = float(open(os.path.join(path, 'float_tolerance')).read())
-    except:
-      self.tolerance = 0
 
-    sys.path.append(path)
-    try:
-      from custom_judge import Judge
-      self.judge = Judge(path).test
-    except:
-      self.judge = self.__test
-    sys.path.remove(path)
+    self.judge = self.__test
+    if os.path.exists(os.path.join(path, 'custom_judge.py')):
+      namespace = dict()
+      exec(open(os.path.join(path, 'custom_judge.py')).read(), namespace)
+      self.judge = namespace['Judge'](path).test
 
     path = path.replace(SOLUTION_DIR_NAME, ARCHIVE_DIR_NAME)
     self.path = os.path.join(path, 'data', 'secret')
